@@ -10,7 +10,7 @@ async function main() {
     where: { email: 'admin@prit.com' },
     update: {},
     create: {
-      name: 'Super Admin',
+      name: 'Prit Senjaliya',
       email: 'admin@prit.com',
       phone: '0000000000',
       password,
@@ -21,9 +21,15 @@ async function main() {
   // Create some services
   await prisma.service.createMany({
     data: [
-      { name: "Computer Repair" },
-      { name: "Network Support" },
-      { name: "Software Support" }
+      { name: "System Diagnostics" },
+      { name: "Data Recovery" },
+      { name: "Network Issues" },
+      { name: "Virus Removal" },
+      { name: "Software Installation" },
+      { name: "System Optimization" },
+      { name: "System Cleanup" },
+      { name: "Security Setup" },
+      { name: "System Restore" }
     ],
     skipDuplicates: true
   });

@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  phone     String
-  password  String
-  role      String   @default("user") // "superadmin" | "admin" | "user" | "engineer"
-  tickets   Ticket[] @relation("UserTickets")
-  assignedTickets Ticket[] @relation("EngineerTickets")
-  createdAt DateTime @default(now())
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique
+  phone           String
+  password        String
+  role            String           @default("user") // "superadmin" | "admin" | "user" | "engineer"
+  tickets         Ticket[]         @relation("UserTickets")
+  assignedTickets Ticket[]         @relation("EngineerTickets")
+  contactRequests ContactRequest[]
+  createdAt       DateTime         @default(now())
 }
 
 model Ticket {
@@ -27,11 +28,24 @@ model Ticket {
   service     String
   userId      Int
   user        User     @relation("UserTickets", fields: [userId], references: [id])
-  engineerId  Int?     // nullable, not required at creation
+  engineerId  Int? // nullable, not required at creation
   engineer    User?    @relation("EngineerTickets", fields: [engineerId], references: [id])
 }
 
 model Service {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
+  id   Int    @id @default(autoincrement())
+  name String @unique
+}
+
+model ContactRequest {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String
+  phone        String
+  computerType String
+  description  String
+  urgency      String
+  createdAt    DateTime @default(now())
+  userId       Int?
+  user         User?    @relation(fields: [userId], references: [id])
 }

@@ -8,7 +8,10 @@ const router = express.Router();
 // Get all tickets
 router.get("/tickets", adminMiddleware, async (req: any, res: any) => {
   const tickets = await prisma.ticket.findMany({
-    include: { user: true },
+    include: {
+      user: true,
+      engineer: { select: { id: true, name: true, email: true, phone: true } }
+    },
     orderBy: { createdAt: "desc" }
   });
   res.json({ tickets });
@@ -42,7 +45,7 @@ router.post("/users", adminMiddleware, async (req: any, res: any) => {
   if (!name || !email || !phone || !password || !role) {
     return res.status(400).json({ error: "All fields required" });
   }
-  if (!["user", "admin" ,"engineer"].includes(role)) {
+  if (!["user", "admin", "engineer"].includes(role)) {
     return res.status(400).json({ error: "Role must be 'user', 'admin', or 'engineer'" });
   }
   const hashed = await bcrypt.hash(password, 10);
@@ -51,6 +54,7 @@ router.post("/users", adminMiddleware, async (req: any, res: any) => {
   });
   res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } });
 });
+
 
 // Add a new service (admin only)
 router.post("/services", adminMiddleware, async (req:any, res:any) => {
@@ -67,7 +71,7 @@ router.get("/services", async (req:any, res:any) => {
 });
 
 // Get all engineers
-router.get("/engineers", adminMiddleware, async (req:any, res:any) => {
+router.get("/engineers", adminMiddleware, async (req: any, res: any) => {
   const engineers = await prisma.user.findMany({
     where: { role: "engineer" },
     select: { id: true, name: true, email: true, phone: true }
@@ -76,7 +80,7 @@ router.get("/engineers", adminMiddleware, async (req:any, res:any) => {
 });
 
 // Assign engineer to ticket
-router.patch("/tickets/:id/assign", adminMiddleware, async (req:any, res:any) => {
+router.patch("/tickets/:id/assign", adminMiddleware, async (req: any, res: any) => {
   const { engineerId } = req.body;
   const { id } = req.params;
   if (!engineerId) return res.status(400).json({ error: "Engineer ID required" });
@@ -86,6 +90,15 @@ router.patch("/tickets/:id/assign", adminMiddleware, async (req:any, res:any) =>
     include: { engineer: true }
   });
   res.json({ ticket });
+});
+
+//get contacts
+router.get("/contacts", adminMiddleware, async (req: any, res: any) => {
+  const contacts = await prisma.contactRequest.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { user: { select: { id: true, name: true, email: true } } }
+  });
+  res.json({ contacts });
 });
 
 module.exports = router;

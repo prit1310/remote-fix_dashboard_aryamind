@@ -1,6 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Download, Monitor, CheckCircle, ArrowRight } from "lucide-react";
+
+interface HowitsworkProps {
+  user: { name: string; email: string; role: string } | null;
+  onLoginClick: () => void;
+}
 
 const steps = [
   {
@@ -12,7 +18,7 @@ const steps = [
   },
   {
     icon: Download,
-    step: "02", 
+    step: "02",
     title: "Download Software",
     description: "We'll send you a secure remote access link to download our connection software",
     details: "Safe, one-time download that creates a secure tunnel between our technician and your computer"
@@ -33,7 +39,15 @@ const steps = [
   }
 ];
 
-const HowItWorksSection = () => {
+const HowItWorksSection = ({ user, onLoginClick }: HowitsworkProps) => {
+  const navigate = useNavigate();
+  const handleStartSession = () => {
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      onLoginClick();
+    }
+  };
   return (
     <section id="how-it-works" className="py-24">
       <div className="container max-w-screen-2xl px-4">
@@ -45,11 +59,11 @@ const HowItWorksSection = () => {
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Get your computer fixed in 4 simple steps. Fast, secure, and convenient 
+            Get your computer fixed in 4 simple steps. Fast, secure, and convenient
             remote support from certified technicians.
           </p>
         </div>
-        
+
         <div className="grid lg:grid-cols-4 gap-8 mb-16">
           {steps.map((step, index) => (
             <div key={index} className="relative">
@@ -74,7 +88,7 @@ const HowItWorksSection = () => {
                   </p>
                 </CardContent>
               </Card>
-              
+
               {/* Arrow connector for desktop */}
               {index < steps.length - 1 && (
                 <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
@@ -84,7 +98,7 @@ const HowItWorksSection = () => {
             </div>
           ))}
         </div>
-        
+
         {/* Security Assurance */}
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <Card variant="glass" className="p-8">
@@ -118,17 +132,17 @@ const HowItWorksSection = () => {
               </div>
             </div>
           </Card>
-          
+
           <div className="text-center lg:text-left">
             <h3 className="text-3xl font-bold mb-6">
               Ready to Get Started?
             </h3>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of satisfied customers who trust us with their computer problems. 
+              Join thousands of satisfied customers who trust us with their computer problems.
               Fast, reliable, and secure remote support is just one click away.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="lg">
+              <Button variant="hero" size="lg" onClick={handleStartSession}>
                 Start Remote Session
               </Button>
               <Button variant="ghost" size="lg">

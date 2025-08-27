@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -70,6 +71,11 @@ const services = [
 ];
 
 const ServicesSection = () => {
+  const navigate = useNavigate();
+  const handleContact = () => {  
+      navigate("/contact");
+  };
+
   return (
     <section id="services" className="py-24 bg-surface">
       <div className="container max-w-screen-2xl px-4">
@@ -121,7 +127,7 @@ const ServicesSection = () => {
             <p className="text-muted-foreground mb-6 max-w-md">
               Can't find what you're looking for? Our experts can handle any computer issue.
             </p>
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" onClick={handleContact}>
               Contact Our Experts
             </Button>
           </Card>
