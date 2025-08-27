@@ -10,6 +10,11 @@ import UserDashboard from "@/components/UserDashboard";
 import AuthModal from "@/components/AuthModal";
 import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
+import ServicesSection from "@/components/ServicesSection";
+import HowItWorksSection from "@/components/HowItWorksSection";
+import ContactSection from "@/components/ContactSection";
+import AboutSection from "@/components/AboutSection";
+import Footer from "@/components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +28,7 @@ const AppRoutes = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://localhost:4000/api/me", {
+      fetch("/api/me", {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -82,6 +87,10 @@ const AppRoutes = () => {
       />
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/service" element={<ServicesSection />} />
+        <Route path="/how-it-works" element={<HowItWorksSection />} />
+        <Route path="/about" element={<AboutSection />} />
+        <Route path="/contact" element={<ContactSection />} />
         <Route
           path="/admin"
           element={
@@ -104,6 +113,7 @@ const AppRoutes = () => {
         />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <Footer />
     </>
   );
 };

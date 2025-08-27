@@ -23,16 +23,16 @@ const Header = ({ user, onLoginClick, onLogout }: HeaderProps) => {
                     <a href="/dashboard" className="text-foreground/80 hover:text-foreground transition-colors">
                         Dashboard
                     </a>
-                    <a href="#services" className="text-foreground/80 hover:text-foreground transition-colors">
+                    <a href="/service" className="text-foreground/80 hover:text-foreground transition-colors">
                         Services
                     </a>
-                    <a href="#how-it-works" className="text-foreground/80 hover:text-foreground transition-colors">
+                    <a href="/how-it-works" className="text-foreground/80 hover:text-foreground transition-colors">
                         How It Works
                     </a>
-                    <a href="#about" className="text-foreground/80 hover:text-foreground transition-colors">
+                    <a href="/about" className="text-foreground/80 hover:text-foreground transition-colors">
                         About
                     </a>
-                    <a href="#contact" className="text-foreground/80 hover:text-foreground transition-colors">
+                    <a href="/contact" className="text-foreground/80 hover:text-foreground transition-colors">
                         Contact
                     </a>
                 </nav>

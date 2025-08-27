@@ -42,8 +42,8 @@ router.post("/users", adminMiddleware, async (req: any, res: any) => {
   if (!name || !email || !phone || !password || !role) {
     return res.status(400).json({ error: "All fields required" });
   }
-  if (!["user", "admin"].includes(role)) {
-    return res.status(400).json({ error: "Role must be 'user' or 'admin'" });
+  if (!["user", "admin" ,"engineer"].includes(role)) {
+    return res.status(400).json({ error: "Role must be 'user', 'admin', or 'engineer'" });
   }
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
@@ -64,6 +64,28 @@ router.post("/services", adminMiddleware, async (req:any, res:any) => {
 router.get("/services", async (req:any, res:any) => {
   const services = await prisma.service.findMany({ orderBy: { name: "asc" } });
   res.json({ services });
+});
+
+// Get all engineers
+router.get("/engineers", adminMiddleware, async (req:any, res:any) => {
+  const engineers = await prisma.user.findMany({
+    where: { role: "engineer" },
+    select: { id: true, name: true, email: true, phone: true }
+  });
+  res.json({ engineers });
+});
+
+// Assign engineer to ticket
+router.patch("/tickets/:id/assign", adminMiddleware, async (req:any, res:any) => {
+  const { engineerId } = req.body;
+  const { id } = req.params;
+  if (!engineerId) return res.status(400).json({ error: "Engineer ID required" });
+  const ticket = await prisma.ticket.update({
+    where: { id: Number(id) },
+    data: { engineerId: Number(engineerId) },
+    include: { engineer: true }
+  });
+  res.json({ ticket });
 });
 
 module.exports = router;

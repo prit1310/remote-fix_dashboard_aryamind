@@ -22,7 +22,10 @@ function authMiddleware(req:any, res:any, next:any) {
 router.get("/", authMiddleware, async (req:any, res:any) => {
   const tickets = await prisma.ticket.findMany({
     where: { userId: req.userId },
-    orderBy: { createdAt: "desc" }
+    orderBy: { createdAt: "desc" },
+    include: {
+      engineer: { select: { id: true, name: true, email: true, phone: true } }
+    }
   });
   res.json({ tickets });
 });

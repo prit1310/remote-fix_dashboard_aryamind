@@ -10,13 +10,13 @@ interface UserDashboardProps {
     user: { name: string; email: string; phone?: string };
 }
 
-// Mock data structure - replace with your database data
 interface TicketData {
     id: string;
     description: string;
     status: 'pending' | 'in-progress' | 'completed';
     createdAt: string;
     service: string;
+    engineer?: { id: number; name: string; email: string; phone: string } | null;
 }
 
 const UserDashboard = ({ user }: UserDashboardProps) => {
@@ -37,7 +37,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        fetch("http://localhost:4000/api/tickets", {
+        fetch("/api/tickets", {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -45,7 +45,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 setTickets(data.tickets || []);
                 setLoading(false);
             });
-        fetch("http://localhost:4000/api/admin/services")
+        fetch("/api/admin/services")
             .then(res => res.json())
             .then(data => setServices(data.services || []));
     }, []);
@@ -88,7 +88,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         e.preventDefault();
         setCreating(true);
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:4000/api/tickets", {
+        const res = await fetch("/api/tickets", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -111,7 +111,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         e.preventDefault();
         setSaving(true);
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:4000/api/profile", {
+        const res = await fetch("/api/api/profile", {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -222,6 +222,21 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-foreground/80">{ticket.description}</p>
+                                        {ticket.engineer && (
+                                            <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
+                                                <div>
+                                                    <span className="font-medium">Assigned Engineer:</span> {ticket.engineer.name}
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium">Email:</span>{" "}
+                                                    <a href={`mailto:${ticket.engineer.email}`} className="underline">{ticket.engineer.email}</a>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium">Phone:</span>{" "}
+                                                    <a href={`tel:${ticket.engineer.phone}`} className="underline">{ticket.engineer.phone}</a>
+                                                </div>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))}

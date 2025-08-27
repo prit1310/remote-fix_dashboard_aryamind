@@ -7,12 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Ticket = {
   id: number;
-  title: string;
   description: string;
   status: string;
   createdAt: string;
   service: string;
   user: { name: string; email: string };
+  engineer?: { id: number; name: string; email: string; phone: string };
 };
 
 type User = {
@@ -27,6 +27,7 @@ type User = {
 const AdminDashboard = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [engineers, setEngineers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   // For create user form
@@ -43,25 +44,33 @@ const AdminDashboard = () => {
   // For ticket status editing
   const [statusEdits, setStatusEdits] = useState<{ [id: number]: string }>({});
   const [updatingStatus, setUpdatingStatus] = useState<{ [id: number]: boolean }>({});
+  // For engineer assignment
+  const [engineerEdits, setEngineerEdits] = useState<{ [id: number]: string }>({});
+  const [assigningEngineer, setAssigningEngineer] = useState<{ [id: number]: boolean }>({});
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://localhost:4000/api/admin/tickets", {
+    fetch("/api/admin/tickets", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => setTickets(data.tickets || []));
-    fetch("http://localhost:4000/api/admin/users", {
+    fetch("/api/admin/users", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => setUsers(data.users || []));
+    fetch("/api/admin/engineers", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setEngineers(data.engineers || []));
     setLoading(false);
   }, []);
 
   const handleStatusChange = async (id: number, status: string) => {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:4000/api/admin/tickets/${id}`, {
+    await fetch(`/api/admin/tickets/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -76,6 +85,27 @@ const AdminDashboard = () => {
     );
   };
 
+  const handleEngineerAssign = async (id: number, engineerId: string) => {
+    const token = localStorage.getItem("token");
+    setAssigningEngineer(s => ({ ...s, [id]: true }));
+    const res = await fetch(`/api/admin/tickets/${id}/assign`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ engineerId })
+    });
+    const data = await res.json();
+    setTickets(tickets =>
+      tickets.map(t =>
+        t.id === id ? { ...t, engineer: data.ticket.engineer } : t
+      )
+    );
+    setAssigningEngineer(s => ({ ...s, [id]: false }));
+    setEngineerEdits(edits => ({ ...edits, [id]: undefined }));
+  };
+
   const handleUserFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setUserForm({ ...userForm, [e.target.name]: e.target.value });
   };
@@ -84,7 +114,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setCreatingUser(true);
     const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:4000/api/admin/users", {
+    const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,7 +150,7 @@ const AdminDashboard = () => {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                      <CardTitle className="text-lg">{ticket.service}</CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
                         {ticket.service} • Created {new Date(ticket.createdAt).toLocaleString()}
                       </p>
@@ -167,6 +197,45 @@ const AdminDashboard = () => {
                           {updatingStatus[ticket.id] ? "Updating..." : "Update"}
                         </Button>
                       </div>
+                      {/* Engineer assignment */}
+                      <div className="flex gap-2 items-center mt-1">
+                        <select
+                          value={engineerEdits[ticket.id] ?? ticket.engineer?.id ?? ""}
+                          onChange={e =>
+                            setEngineerEdits(edits => ({
+                              ...edits,
+                              [ticket.id]: e.target.value
+                            }))
+                          }
+                          className="input w-[180px] rounded border px-2 py-1"
+                        >
+                          <option value="">Assign Engineer</option>
+                          {engineers.map(e => (
+                            <option key={e.id} value={e.id}>
+                              {e.name} ({e.email})
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          disabled={
+                            !engineerEdits[ticket.id] ||
+                            engineerEdits[ticket.id] === (ticket.engineer?.id?.toString() || "") ||
+                            assigningEngineer[ticket.id]
+                          }
+                          onClick={async () => {
+                            if (!engineerEdits[ticket.id]) return;
+                            await handleEngineerAssign(ticket.id, engineerEdits[ticket.id]);
+                          }}
+                        >
+                          {assigningEngineer[ticket.id] ? "Assigning..." : "Assign"}
+                        </Button>
+                      </div>
+                      {ticket.engineer && (
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Assigned: {ticket.engineer.name} ({ticket.engineer.email}, {ticket.engineer.phone})
+                        </span>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -246,6 +315,7 @@ const AdminDashboard = () => {
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>
+                      <option value="engineer">Engineer</option>
                     </select>
                   </div>
                   <div className="flex gap-2">
@@ -268,9 +338,11 @@ const AdminDashboard = () => {
                     {user.name}
                     <Badge variant={
                       user.role === "superadmin"
-                        ? "destructive"
-                        : user.role === "admin"
                         ? "default"
+                        : user.role === "admin"
+                        ? "secondary"
+                        : user.role === "engineer"
+                        ? "outline"
                         : "secondary"
                     }>
                       {user.role}
