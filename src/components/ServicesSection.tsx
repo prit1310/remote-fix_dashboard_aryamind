@@ -75,6 +75,9 @@ const ServicesSection = () => {
   const handleContact = () => {  
       navigate("/contact");
   };
+  const handleHelp = () => {  
+      navigate("/contact");
+  };
 
   return (
     <section id="services" className="py-24 bg-surface">
@@ -113,7 +116,7 @@ const ServicesSection = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant="tech" className="w-full group-hover:scale-105 transition-transform duration-300">
+                <Button variant="tech" className="w-full group-hover:scale-105 transition-transform duration-300" onClick={handleHelp}>
                   Get Help Now
                 </Button>
               </CardContent>

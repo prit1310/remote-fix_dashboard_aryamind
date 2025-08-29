@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition mb-4">
+            <Link to="/" className="flex items-center gap-2 mb-4">
               <Monitor className="h-8 w-8 text-primary" />
               <span className="text-xl font-bold bg-gradient-hero bg-clip-text text-transparent">
                 RemoteFix Pro

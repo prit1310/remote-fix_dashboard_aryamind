@@ -87,24 +87,126 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setCreating(true);
+
+        // 1. Create Razorpay order (pass userId in notes for backend)
         const token = localStorage.getItem("token");
-        const res = await fetch("/api/tickets", {
+        const orderRes = await fetch("/order", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(form)
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                amount: 500, // or your dynamic amount
+                currency: "INR",
+                receipt: `ticket_${Date.now()}`,
+                notes: { userId: user.email }, // use email or id, must be unique per user
+            }),
         });
-        const data = await res.json();
-        if (data.ticket) {
-            setTickets([data.ticket, ...tickets]);
-            setShowForm(false);
-            setForm({ title: "", description: "", service: "" });
-        } else {
-            alert(data.error || "Failed to create ticket");
+        const order = await orderRes.json();
+        if (!order?.id) {
+            alert("Failed to create payment order");
+            setCreating(false);
+            return;
         }
-        setCreating(false);
+
+        // 2. Open Razorpay checkout
+        const options = {
+            key: "rzp_test_RB4YBY1PoFLtEK", // your Razorpay key
+            order_id: order.id,
+            name: "RemoteFix Pro",
+            description: "Ticket Booking",
+            handler: async function (response: any) {
+                // 3. Verify payment signature (for instant methods)
+                const verifyRes = await fetch("/verify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(response),
+                });
+                const verifyData = await verifyRes.json();
+                if (verifyData.status === "success") {
+                    // 4. Create the ticket after payment is verified
+                    const ticketRes = await fetch("/api/tickets", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify(form),
+                    });
+                    const data = await ticketRes.json();
+                    if (data.ticket) {
+                        setTickets([data.ticket, ...tickets]);
+                        setShowForm(false);
+                        setForm({ title: "", description: "", service: "" });
+                        alert("Ticket booked and payment successful!");
+                    } else {
+                        alert(data.error || "Failed to create ticket after payment");
+                    }
+                } else {
+                    alert("Payment verification failed");
+                }
+                setCreating(false);
+            },
+            prefill: {
+                name: user.name,
+                email: user.email,
+                contact: user.phone || "",
+            },
+            theme: { color: "#3399cc" },
+            modal: {
+                ondismiss: () => {
+                    setCreating(false);
+                    alert("Payment cancelled");
+                },
+            },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+
+        // 5. Poll payment status for Pay Later/UPI/EMI
+        const pollStatus = (orderId: string) => {
+            const start = Date.now();
+            const interval = setInterval(async () => {
+                try {
+                    const r = await fetch(`/payment-status/${orderId}`);
+                    if (r.ok) {
+                        const data = await r.json();
+                        if (data.status === "captured") {
+                            clearInterval(interval);
+                            setCreating(false);
+                            // Create the ticket after payment is captured (if not already created)
+                            const ticketRes = await fetch("/api/tickets", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${token}`,
+                                },
+                                body: JSON.stringify(form),
+                            });
+                            const ticketData = await ticketRes.json();
+                            if (ticketData.ticket) {
+                                setTickets([ticketData.ticket, ...tickets]);
+                                setShowForm(false);
+                                setForm({ title: "", description: "", service: "" });
+                                alert("Ticket booked and payment successful!");
+                            } else {
+                                alert(ticketData.error || "Failed to create ticket after payment");
+                            }
+                        }
+                        if (data.status === "failed") {
+                            clearInterval(interval);
+                            setCreating(false);
+                            alert("Payment failed.");
+                        }
+                    }
+                } catch (e) { }
+                if (Date.now() - start > 120000) {
+                    clearInterval(interval);
+                    setCreating(false);
+                    alert("Timed out while waiting for payment status.");
+                }
+            }, 3000);
+        };
+        pollStatus(order.id);
     };
 
     const handleProfileSave = async (e: React.FormEvent) => {

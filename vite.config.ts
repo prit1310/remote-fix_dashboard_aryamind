@@ -10,18 +10,38 @@ export default defineConfig(({ mode }) => ({
     proxy:
       mode === "development"
         ? {
-            "/api": {
-              target: "http://localhost:4000", // backend in dev
-              changeOrigin: true,
-              secure: false,
-            },
-          }
+          "/api": {
+            target: "http://localhost:4000",
+            changeOrigin: true,
+            secure: false,
+          },
+          "/order": {
+            target: "http://localhost:4000",
+            changeOrigin: true,
+            secure: false,
+          },
+          "/verify": {
+            target: "http://localhost:4000",
+            changeOrigin: true,
+            secure: false,
+          },
+          "/payment-status": {
+            target: "http://localhost:4000",
+            changeOrigin: true,
+            secure: false,
+          },
+          "/razorpay-webhook": {
+            target: "http://localhost:4000",
+            changeOrigin: true,
+            secure: false,
+          },
+        }
         : undefined,
   },
   preview: {
     host: "0.0.0.0",
     port: 8081,
-    allowedHosts: ["remotefix.shwetatech.com"], // ✅ allow your domain
+    allowedHosts: ["remotefix.shwetatech.com"],
   },
   plugins: [
     react(),

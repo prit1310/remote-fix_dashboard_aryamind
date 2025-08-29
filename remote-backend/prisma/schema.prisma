@@ -18,18 +18,20 @@ model User {
   assignedTickets Ticket[]         @relation("EngineerTickets")
   contactRequests ContactRequest[]
   createdAt       DateTime         @default(now())
+  Payment         Payment[]
 }
 
 model Ticket {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   description String
-  status      String   @default("pending")
-  createdAt   DateTime @default(now())
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
   service     String
   userId      Int
-  user        User     @relation("UserTickets", fields: [userId], references: [id])
+  user        User      @relation("UserTickets", fields: [userId], references: [id])
   engineerId  Int? // nullable, not required at creation
-  engineer    User?    @relation("EngineerTickets", fields: [engineerId], references: [id])
+  engineer    User?     @relation("EngineerTickets", fields: [engineerId], references: [id])
+  Payment     Payment[]
 }
 
 model Service {
@@ -48,4 +50,18 @@ model ContactRequest {
   createdAt    DateTime @default(now())
   userId       Int?
   user         User?    @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  orderId   String   @unique
+  paymentId String?
+  status    String
+  method    String?
+  amount    Int
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  ticketId  Int?
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  createdAt DateTime @default(now())
 }

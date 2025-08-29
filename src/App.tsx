@@ -70,10 +70,6 @@ const AppRoutes = () => {
     navigate("/");
   };
 
-  if (checkingAuth) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <>
       {isAdminRoute ? (
