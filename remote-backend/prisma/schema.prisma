@@ -8,12 +8,12 @@ datasource db {
 }
 
 model User {
-  id              Int              @id @default(autoincrement())
+  id              String           @id @default(uuid())
   name            String
   email           String           @unique
   phone           String
   password        String
-  role            String           @default("user") // "superadmin" | "admin" | "user" | "engineer"
+  role            String           @default("user")
   tickets         Ticket[]         @relation("UserTickets")
   assignedTickets Ticket[]         @relation("EngineerTickets")
   contactRequests ContactRequest[]
@@ -22,25 +22,25 @@ model User {
 }
 
 model Ticket {
-  id          Int       @id @default(autoincrement())
+  id          String    @id @default(uuid())
   description String
   status      String    @default("pending")
   createdAt   DateTime  @default(now())
   service     String
-  userId      Int
+  userId      String
   user        User      @relation("UserTickets", fields: [userId], references: [id])
-  engineerId  Int? // nullable, not required at creation
+  engineerId  String? // nullable, not required at creation
   engineer    User?     @relation("EngineerTickets", fields: [engineerId], references: [id])
   Payment     Payment[]
 }
 
 model Service {
-  id   Int    @id @default(autoincrement())
+  id   String @id @default(uuid())
   name String @unique
 }
 
 model ContactRequest {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(uuid())
   name         String
   email        String
   phone        String
@@ -48,20 +48,20 @@ model ContactRequest {
   description  String
   urgency      String
   createdAt    DateTime @default(now())
-  userId       Int?
+  userId       String?
   user         User?    @relation(fields: [userId], references: [id])
 }
 
 model Payment {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   orderId   String   @unique
   paymentId String?
   status    String
   method    String?
   amount    Int
-  userId    Int
+  userId    String
   user      User     @relation(fields: [userId], references: [id])
-  ticketId  Int?
+  ticketId  String?
   ticket    Ticket?  @relation(fields: [ticketId], references: [id])
   createdAt DateTime @default(now())
 }

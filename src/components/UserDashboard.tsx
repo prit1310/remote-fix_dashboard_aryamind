@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Ticket, Plus, Clock, CheckCircle, AlertCircle, User } from "lucide-react";
 
 interface UserDashboardProps {
-    user: { name: string; email: string; phone?: string };
+    user: { id: string; name: string; email: string; phone?: string }
 }
 
 interface TicketData {
@@ -16,7 +16,7 @@ interface TicketData {
     status: 'pending' | 'in-progress' | 'completed';
     createdAt: string;
     service: string;
-    engineer?: { id: number; name: string; email: string; phone: string } | null;
+    engineer?: { id: string; name: string; email: string; phone: string } | null;
 }
 
 const UserDashboard = ({ user }: UserDashboardProps) => {
@@ -26,7 +26,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ title: "", description: "", service: "" });
     const [creating, setCreating] = useState(false);
-    const [services, setServices] = useState<{ id: number; name: string }[]>([]);
+    const [services, setServices] = useState<{ id: string; name: string }[]>([]);
     const [editing, setEditing] = useState(false);
     const [profileForm, setProfileForm] = useState({
         name: user.name,
@@ -88,8 +88,12 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         e.preventDefault();
         setCreating(true);
 
-        // 1. Create Razorpay order (pass userId in notes for backend)
+        let ticketCreated = false;
+        let rzp: any = null;
+        let orderId = "";
+
         const token = localStorage.getItem("token");
+        // 1. Create Razorpay order (pass userId or email in notes for backend)
         const orderRes = await fetch("/order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -97,7 +101,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 amount: 500, // or your dynamic amount
                 currency: "INR",
                 receipt: `ticket_${Date.now()}`,
-                notes: { userId: user.email }, // use email or id, must be unique per user
+                notes: { userId: user.id, userEmail: user.email },
             }),
         });
         const order = await orderRes.json();
@@ -106,10 +110,35 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             setCreating(false);
             return;
         }
+        orderId = order.id;
+
+        // Only create ticket once
+        const createTicket = async () => {
+            if (ticketCreated) return;
+            ticketCreated = true;
+            const ticketRes = await fetch("/api/tickets", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(form),
+            });
+            const data = await ticketRes.json();
+            if (data.ticket) {
+                setTickets([data.ticket, ...tickets]);
+                setShowForm(false);
+                setForm({ title: "", description: "", service: "" });
+                alert("Ticket booked and payment successful!");
+            } else {
+                alert(data.error || "Failed to create ticket after payment");
+            }
+            setCreating(false);
+        };
 
         // 2. Open Razorpay checkout
         const options = {
-            key: "rzp_test_RB4YBY1PoFLtEK", // your Razorpay key
+            key: "rzp_test_RB4YBY1PoFLtEK",
             order_id: order.id,
             name: "RemoteFix Pro",
             description: "Ticket Booking",
@@ -122,28 +151,11 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 });
                 const verifyData = await verifyRes.json();
                 if (verifyData.status === "success") {
-                    // 4. Create the ticket after payment is verified
-                    const ticketRes = await fetch("/api/tickets", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify(form),
-                    });
-                    const data = await ticketRes.json();
-                    if (data.ticket) {
-                        setTickets([data.ticket, ...tickets]);
-                        setShowForm(false);
-                        setForm({ title: "", description: "", service: "" });
-                        alert("Ticket booked and payment successful!");
-                    } else {
-                        alert(data.error || "Failed to create ticket after payment");
-                    }
+                    await createTicket();
                 } else {
                     alert("Payment verification failed");
+                    setCreating(false);
                 }
-                setCreating(false);
             },
             prefill: {
                 name: user.name,
@@ -159,10 +171,10 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             },
         };
 
-        const rzp = new (window as any).Razorpay(options);
+        rzp = new (window as any).Razorpay(options);
         rzp.open();
 
-        // 5. Poll payment status for Pay Later/UPI/EMI
+        // 4. Poll payment status for Pay Later/UPI/EMI
         const pollStatus = (orderId: string) => {
             const start = Date.now();
             const interval = setInterval(async () => {
@@ -172,29 +184,13 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                         const data = await r.json();
                         if (data.status === "captured") {
                             clearInterval(interval);
-                            setCreating(false);
-                            // Create the ticket after payment is captured (if not already created)
-                            const ticketRes = await fetch("/api/tickets", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    Authorization: `Bearer ${token}`,
-                                },
-                                body: JSON.stringify(form),
-                            });
-                            const ticketData = await ticketRes.json();
-                            if (ticketData.ticket) {
-                                setTickets([ticketData.ticket, ...tickets]);
-                                setShowForm(false);
-                                setForm({ title: "", description: "", service: "" });
-                                alert("Ticket booked and payment successful!");
-                            } else {
-                                alert(ticketData.error || "Failed to create ticket after payment");
-                            }
+                            await createTicket();
+                            if (rzp) rzp.close();
                         }
                         if (data.status === "failed") {
                             clearInterval(interval);
                             setCreating(false);
+                            if (rzp) rzp.close();
                             alert("Payment failed.");
                         }
                     }
@@ -202,7 +198,8 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 if (Date.now() - start > 120000) {
                     clearInterval(interval);
                     setCreating(false);
-                    alert("Timed out while waiting for payment status.");
+                    if (rzp) rzp.close();
+                    alert("Timed out while waiting for payment status. Please try again.");
                 }
             }, 3000);
         };
@@ -213,7 +210,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         e.preventDefault();
         setSaving(true);
         const token = localStorage.getItem("token");
-        const res = await fetch("/api/api/profile", {
+        const res = await fetch("/api/profile", {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",

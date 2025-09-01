@@ -25,7 +25,7 @@ router.patch("/tickets/:id", adminMiddleware, async (req: any, res: any) => {
     return res.status(400).json({ error: "Invalid status" });
   }
   const ticket = await prisma.ticket.update({
-    where: { id: Number(id) },
+    where: {id},
     data: { status }
   });
   res.json({ ticket });
@@ -85,8 +85,8 @@ router.patch("/tickets/:id/assign", adminMiddleware, async (req: any, res: any) 
   const { id } = req.params;
   if (!engineerId) return res.status(400).json({ error: "Engineer ID required" });
   const ticket = await prisma.ticket.update({
-    where: { id: Number(id) },
-    data: { engineerId: Number(engineerId) },
+    where: { id},
+    data: { engineerId},
     include: { engineer: true }
   });
   res.json({ ticket });

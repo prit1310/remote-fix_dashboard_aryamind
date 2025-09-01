@@ -22,7 +22,7 @@ router.post("/signup", async (req: any, res: any) => {
         });
 
         const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone|| "", role: user.role } });
     } catch (err) {
         res.status(500).json({ error: "Server error." });
     }
@@ -42,7 +42,7 @@ router.post("/login", async (req: any, res: any) => {
         if (!valid) return res.status(401).json({ error: "Invalid credentials." });
 
         const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone|| "", role: user.role } });
     } catch (err) {
         res.status(500).json({ error: "Server error." });
     }
@@ -57,7 +57,15 @@ router.get("/me", async (req: any, res: any) => {
         const payload = jwt.verify(token, JWT_SECRET);
         const user = await prisma.user.findUnique({ where: { id: payload.userId } });
         if (!user) return res.status(404).json({ error: "User not found." });
-        res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone ,role: user.role} });
+        res.json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone || "", // always a string
+                role: user.role
+            }
+        });
     } catch {
         res.status(401).json({ error: "Invalid token." });
     }
@@ -79,7 +87,7 @@ router.patch("/profile", async (req: any, res: any) => {
             data: { name, email, phone },
         });
 
-        res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+        res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone|| "", role: user.role } });
     } catch (err) {
         res.status(401).json({ error: "Invalid token or update failed." });
     }

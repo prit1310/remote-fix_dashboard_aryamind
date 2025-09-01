@@ -52,7 +52,7 @@ router.patch("/:id", authMiddleware, async (req:any, res:any) => {
   const { status } = req.body;
   const { id } = req.params;
   const ticket = await prisma.ticket.update({
-    where: { id: Number(id), userId: req.userId },
+    where: { id, userId: req.userId },
     data: { status }
   });
   res.json({ ticket });
@@ -62,7 +62,7 @@ router.patch("/:id", authMiddleware, async (req:any, res:any) => {
 router.delete("/:id", authMiddleware, async (req:any, res:any) => {
   const { id } = req.params;
   await prisma.ticket.delete({
-    where: { id: Number(id), userId: req.userId }
+    where: { id, userId: req.userId }
   });
   res.json({ success: true });
 });

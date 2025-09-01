@@ -9,7 +9,7 @@ const adminRoutes = require("./routes/admin");
 const contactRoutes = require("./routes/contact");
 const prisma = require("./prisma");
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 app.use(cors());
@@ -52,8 +52,12 @@ app.post(
                     amount: payment.amount,
                 });
 
-                // Store in DB
-                const userId = payment.notes?.userId ? Number(payment.notes.userId) : null;
+                // Always update, never create (created on /order)
+                const userId = payment.notes?.userId;
+                if (!userId) {
+                    console.error("Webhook: userId missing in payment notes for order", orderId);
+                    return res.status(400).send("userId missing in payment notes");
+                }
                 await prisma.payment.upsert({
                     where: { orderId },
                     update: {
@@ -61,6 +65,7 @@ app.post(
                         paymentId: payment.id,
                         method: payment.method,
                         amount: payment.amount,
+                        userId: userId,
                     },
                     create: {
                         orderId,
@@ -68,7 +73,7 @@ app.post(
                         status: "captured",
                         method: payment.method,
                         amount: payment.amount,
-                        userId: userId || 1, // fallback userId, set properly in production!
+                        userId: userId,
                     },
                 });
             }
@@ -83,7 +88,7 @@ app.post(
             }
 
             res.json({ status: "ok" });
-        } catch (err) {
+        } catch (err: any) {
             res.status(500).send("Server error");
         }
     }
@@ -107,6 +112,20 @@ app.post("/order", async (req: any, res: any) => {
             notes: notes || {},
         };
         const order = await razorpay.orders.create(options);
+
+        // Always create Payment record with userId (UUID string)
+        if (!notes?.userId) {
+            return res.status(400).json({ error: "userId required in notes" });
+        }
+        await prisma.payment.create({
+            data: {
+                orderId: order.id,
+                status: "created",
+                amount: order.amount,
+                userId: notes.userId, // UUID string
+            }
+        });
+
         paymentStore.set(order.id, {
             status: "created",
             payment_id: null,
@@ -123,7 +142,7 @@ app.post("/order", async (req: any, res: any) => {
 });
 
 // Verify payment signature
-app.post("/verify", (req: any, res: any) => {
+app.post("/verify", async (req: any, res: any) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
         const body = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -139,11 +158,27 @@ app.post("/verify", (req: any, res: any) => {
                 status: "verified",
                 payment_id: razorpay_payment_id,
             });
+            // Fetch the order from Razorpay to get userId and amount
+            const order = await razorpay.orders.fetch(razorpay_order_id);
+            const userId = order.notes?.userId || null;
+            const amount = order.amount;
+            if (!userId) {
+                return res.status(400).json({ error: "userId missing in order notes" });
+            }
+            await prisma.payment.update({
+                where: { orderId: razorpay_order_id },
+                data: {
+                    status: "verified",
+                    paymentId: razorpay_payment_id,
+                    amount: amount,
+                    userId: userId,
+                }
+            });
             return res.json({ status: "success", message: "Payment signature verified" });
         } else {
             return res.status(400).json({ status: "failure", message: "Invalid signature" });
         }
-    } catch (err) {
+    } catch (err: any) {
         res.status(500).json({ status: "error", message: "Server error during verification" });
     }
 });

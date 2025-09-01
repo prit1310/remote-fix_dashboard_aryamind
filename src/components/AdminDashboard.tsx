@@ -6,17 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Ticket = {
-    id: number;
+    id: string;
     description: string;
     status: string;
     createdAt: string;
     service: string;
     user: { name: string; email: string };
-    engineer?: { id: number; name: string; email: string; phone: string };
+    engineer?: { id: string; name: string; email: string; phone: string };
 };
 
 type User = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     phone: string;
@@ -42,11 +42,11 @@ const AdminDashboard = () => {
     const [creatingUser, setCreatingUser] = useState(false);
 
     // For ticket status editing
-    const [statusEdits, setStatusEdits] = useState<{ [id: number]: string }>({});
-    const [updatingStatus, setUpdatingStatus] = useState<{ [id: number]: boolean }>({});
+    const [statusEdits, setStatusEdits] = useState<{ [id: string]: string }>({});
+    const [updatingStatus, setUpdatingStatus] = useState<{ [id: string]: boolean }>({});
     // For engineer assignment
-    const [engineerEdits, setEngineerEdits] = useState<{ [id: number]: string }>({});
-    const [assigningEngineer, setAssigningEngineer] = useState<{ [id: number]: boolean }>({});
+    const [engineerEdits, setEngineerEdits] = useState<{ [id: string]: string }>({});
+    const [assigningEngineer, setAssigningEngineer] = useState<{ [id: string]: boolean }>({});
     //for contacts
     const [contacts, setContacts] = useState<any[]>([]);
 
@@ -74,7 +74,7 @@ const AdminDashboard = () => {
             .then(data => setContacts(data.contacts || []));
     }, []);
 
-    const handleStatusChange = async (id: number, status: string) => {
+    const handleStatusChange = async (id: string, status: string) => {
         const token = localStorage.getItem("token");
         await fetch(`/api/admin/tickets/${id}`, {
             method: "PATCH",
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
         );
     };
 
-    const handleEngineerAssign = async (id: number, engineerId: string) => {
+    const handleEngineerAssign = async (id: string, engineerId: string) => {
         const token = localStorage.getItem("token");
         setAssigningEngineer(s => ({ ...s, [id]: true }));
         const res = await fetch(`/api/admin/tickets/${id}/assign`, {

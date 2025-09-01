@@ -1,0 +1,16 @@
+{
+    "name": "RemoteFix Pro",
+    "short_name": "RemoteFix",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#3399cc",
+    "description": "RemoteFix Pro Support App",
+    "icons": [
+      {
+        "src": "icon.gif",
+        "sizes": "192x192",
+        "type": "image/gif"
+      }
+    ]
+  }

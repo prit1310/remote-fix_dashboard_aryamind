@@ -20,7 +20,7 @@ import AdminHeader from "@/components/AdminHeader";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; name: string; email: string; phone?: string; role: string } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ const AppRoutes = () => {
     }
   }, [navigate]);
 
-  const handleAuthSuccess = (user: { name: string; email: string; role: string }, token: string) => {
+  const handleAuthSuccess = (user: { id: string; name: string; email: string; phone?: string; role: string }, token: string) => {
     setUser(user);
     localStorage.setItem("token", token);
     setShowAuthModal(false);
@@ -69,6 +69,15 @@ const AppRoutes = () => {
     localStorage.removeItem("token");
     navigate("/");
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-[#3399cc] rounded-full animate-spin"></div>
+        <div className="mt-4 text-[#3399cc] font-medium text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <>
