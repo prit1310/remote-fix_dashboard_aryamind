@@ -76,6 +76,17 @@ app.post(
                         userId: userId,
                     },
                 });
+
+                // Try to update InProgressPayment
+                await prisma.inProgressPayment.updateMany({
+                    where: { orderId },
+                    data: {
+                        status: "captured",
+                        paymentId: payment.id,
+                        method: payment.method,
+                        amount: payment.amount,
+                    }
+                });
             }
 
             if (event.event === "payment.failed") {
@@ -141,6 +152,44 @@ app.post("/order", async (req: any, res: any) => {
     }
 });
 
+// inprogress order
+app.post("/order-inprogress", async (req: any, res: any) => {
+    try {
+        const { amount, currency, receipt, notes, ticketId, userId } = req.body;
+        if (!ticketId || !userId) {
+            return res.status(400).json({ error: "ticketId and userId required" });
+        }
+        const options = {
+            amount: Number(amount) * 100,
+            currency: currency || "INR",
+            receipt: receipt || `inprogress_${Date.now()}`,
+            notes: notes || {},
+        };
+        const order = await razorpay.orders.create(options);
+
+        // Create InProgressPayment record
+        await prisma.inProgressPayment.create({
+            data: {
+                orderId: order.id,
+                status: "created",
+                amount: order.amount,
+                userId,
+                ticketId,
+            }
+        });
+
+        paymentStore.set(order.id, {
+            status: "created",
+            payment_id: null,
+            method: null,
+            amount: order.amount,
+        });
+        res.json(order);
+    } catch (err: any) {
+        res.status(500).json({ error: true, message: err.error?.description || "Server error" });
+    }
+});
+
 // Verify payment signature
 app.post("/verify", async (req: any, res: any) => {
     try {
@@ -166,6 +215,15 @@ app.post("/verify", async (req: any, res: any) => {
                 return res.status(400).json({ error: "userId missing in order notes" });
             }
             await prisma.payment.update({
+                where: { orderId: razorpay_order_id },
+                data: {
+                    status: "verified",
+                    paymentId: razorpay_payment_id,
+                    amount: amount,
+                    userId: userId,
+                }
+            });
+            await prisma.inProgressPayment.updateMany({
                 where: { orderId: razorpay_order_id },
                 data: {
                     status: "verified",

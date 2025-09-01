@@ -8,7 +8,7 @@ const AdminHeader = ({ onLogout }: { onLogout: () => void }) => (
       <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition">
         <Monitor className="h-8 w-8 text-primary" />
         <span className="text-xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-          RemoteFix Pro
+          RemoteFix
         </span>
       </Link>
       <div>

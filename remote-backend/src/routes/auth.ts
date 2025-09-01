@@ -4,7 +4,21 @@ const jwt = require("jsonwebtoken");
 const prisma = require("../prisma");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
+const JWT_SECRET = process.env.JWT_SECRET || "";
+
+function requireAuth(req:any, res:any, next:any) {
+    const auth = req.headers.authorization;
+    if (!auth) return res.status(401).json({ error: "No token." });
+
+    try {
+        const token = auth.split(" ")[1];
+        const payload = jwt.verify(token, JWT_SECRET);
+        req.user = { id: payload.userId };
+        next();
+    } catch {
+        return res.status(401).json({ error: "Invalid token." });
+    }
+}
 
 // Signup
 router.post("/signup", async (req: any, res: any) => {
@@ -91,6 +105,14 @@ router.patch("/profile", async (req: any, res: any) => {
     } catch (err) {
         res.status(401).json({ error: "Invalid token or update failed." });
     }
+});
+
+router.get("/user/inprogress-payments", requireAuth, async (req: any, res: any) => {
+    const userId = req.user.id;
+    const payments = await prisma.inProgressPayment.findMany({
+        where: { userId },
+    });
+    res.json({ payments });
 });
 
 module.exports = router;

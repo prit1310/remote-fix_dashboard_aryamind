@@ -6,6 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Ticket, Plus, Clock, CheckCircle, AlertCircle, User } from "lucide-react";
 
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
 interface UserDashboardProps {
     user: { id: string; name: string; email: string; phone?: string }
 }
@@ -35,6 +41,8 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
     });
     const [saving, setSaving] = useState(false);
 
+    const [inProgressPayments, setInProgressPayments] = useState<{ [ticketId: string]: any }>({});
+
     useEffect(() => {
         const token = localStorage.getItem("token");
         fetch("/api/tickets", {
@@ -48,6 +56,16 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         fetch("/api/admin/services")
             .then(res => res.json())
             .then(data => setServices(data.services || []));
+        fetch("/api/user/inprogress-payments", {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => {
+                // Map by ticketId for easy lookup
+                const map = {};
+                (data.payments || []).forEach(p => { map[p.ticketId] = p; });
+                setInProgressPayments(map);
+            });
     }, []);
 
     const getStatusColor = (status: string) => {
@@ -90,7 +108,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
 
         let ticketCreated = false;
         let rzp: any = null;
-        let orderId = "";
 
         const token = localStorage.getItem("token");
         // 1. Create Razorpay order (pass userId or email in notes for backend)
@@ -98,7 +115,7 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                amount: 500, // or your dynamic amount
+                amount: 99, // or your dynamic amount
                 currency: "INR",
                 receipt: `ticket_${Date.now()}`,
                 notes: { userId: user.id, userEmail: user.email },
@@ -110,7 +127,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             setCreating(false);
             return;
         }
-        orderId = order.id;
 
         // Only create ticket once
         const createTicket = async () => {
@@ -198,6 +214,117 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 if (Date.now() - start > 120000) {
                     clearInterval(interval);
                     setCreating(false);
+                    if (rzp) rzp.close();
+                    alert("Timed out while waiting for payment status. Please try again.");
+                }
+            }, 3000);
+        };
+        pollStatus(order.id);
+    };
+
+    const handleInProgressPayment = async (ticket: TicketData) => {
+        let rzp: any = null;
+
+        // 1. Create Razorpay order for in-progress payment
+        const orderRes = await fetch("/order-inprogress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                amount: 299,
+                currency: "INR",
+                receipt: `inprogress_${Date.now()}`,
+                notes: { userId: user.id, ticketId: ticket.id },
+                ticketId: ticket.id,
+                userId: user.id,
+            }),
+        });
+        const order = await orderRes.json();
+        if (!order?.id) {
+            alert("Failed to create payment order");
+            return;
+        }
+
+        // 2. Razorpay checkout options
+        const options = {
+            key: "rzp_test_RB4YBY1PoFLtEK", // Use your live key in production!
+            order_id: order.id,
+            name: "RemoteFix Pro",
+            description: "In-Progress Payment",
+            handler: async function (response: any) {
+                // 3. Verify payment signature (for instant methods)
+                const verifyRes = await fetch("/verify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(response),
+                });
+                const verifyData = await verifyRes.json();
+                if (verifyData.status === "success") {
+                    alert("Payment successful!");
+                    // Refetch in-progress payments
+                    const token = localStorage.getItem("token");
+                    fetch("/api/user/inprogress-payments", {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            const map: { [ticketId: string]: any } = {};
+                            (data.payments || []).forEach((p: any) => { map[p.ticketId] = p; });
+                            setInProgressPayments(map);
+                        });
+                } else {
+                    alert("Payment verification failed");
+                }
+            },
+            prefill: {
+                name: user.name,
+                email: user.email,
+                contact: user.phone || "",
+            },
+            theme: { color: "#3399cc" },
+            modal: {
+                ondismiss: () => {
+                    alert("Payment cancelled");
+                },
+            },
+        };
+
+        // 4. Open Razorpay checkout
+        rzp = new window.Razorpay(options);
+        rzp.open();
+
+        // 5. Poll payment status for UPI/PayLater/EMI
+        const pollStatus = (orderId: string) => {
+            const start = Date.now();
+            const interval = setInterval(async () => {
+                try {
+                    const r = await fetch(`/payment-status/${orderId}`);
+                    if (r.ok) {
+                        const data = await r.json();
+                        if (data.status === "captured") {
+                            clearInterval(interval);
+                            // Refetch in-progress payments
+                            const token = localStorage.getItem("token");
+                            fetch("/api/user/inprogress-payments", {
+                                headers: { Authorization: `Bearer ${token}` }
+                            })
+                                .then(res => res.json())
+                                .then(data => {
+                                    const map: { [ticketId: string]: any } = {};
+                                    (data.payments || []).forEach((p: any) => { map[p.ticketId] = p; });
+                                    setInProgressPayments(map);
+                                });
+                            if (rzp) rzp.close();
+                            alert("Payment successful!");
+                        }
+                        if (data.status === "failed") {
+                            clearInterval(interval);
+                            if (rzp) rzp.close();
+                            alert("Payment failed.");
+                        }
+                    }
+                } catch (e) { }
+                if (Date.now() - start > 120000) {
+                    clearInterval(interval);
                     if (rzp) rzp.close();
                     alert("Timed out while waiting for payment status. Please try again.");
                 }
@@ -321,20 +448,53 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-foreground/80">{ticket.description}</p>
-                                        {ticket.engineer && (
-                                            <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
-                                                <div>
-                                                    <span className="font-medium">Assigned Engineer:</span> {ticket.engineer.name}
+                                        {ticket.status === "in-progress" && (
+                                            <>
+                                                {!inProgressPayments[ticket.id] ||
+                                                    !["captured", "verified"].includes(inProgressPayments[ticket.id].status) ? (
+                                                    <Button
+                                                        onClick={() => handleInProgressPayment(ticket)}
+                                                        className="mt-2"
+                                                    >
+                                                        Pay ₹299 to Continue
+                                                    </Button>
+                                                ) : (
+                                                    ticket.engineer && (
+                                                        <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
+                                                            <div>
+                                                                <span className="font-medium">Assigned Engineer:</span> {ticket.engineer.name}
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium">Email:</span>{" "}
+                                                                <a href={`mailto:${ticket.engineer.email}`} className="underline">{ticket.engineer.email}</a>
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium">Phone:</span>{" "}
+                                                                <a href={`tel:${ticket.engineer.phone}`} className="underline">{ticket.engineer.phone}</a>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </>
+                                        )}
+                                    </CardContent>
+                                    <CardContent>
+                                        {ticket.status === "completed" && (
+                                            ticket.engineer && (
+                                                <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
+                                                    <div>
+                                                        <span className="font-medium">Assigned Engineer:</span> {ticket.engineer.name}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">Email:</span>{" "}
+                                                        <a href={`mailto:${ticket.engineer.email}`} className="underline">{ticket.engineer.email}</a>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">Phone:</span>{" "}
+                                                        <a href={`tel:${ticket.engineer.phone}`} className="underline">{ticket.engineer.phone}</a>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className="font-medium">Email:</span>{" "}
-                                                    <a href={`mailto:${ticket.engineer.email}`} className="underline">{ticket.engineer.email}</a>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium">Phone:</span>{" "}
-                                                    <a href={`tel:${ticket.engineer.phone}`} className="underline">{ticket.engineer.phone}</a>
-                                                </div>
-                                            </div>
+                                            )
                                         )}
                                     </CardContent>
                                 </Card>

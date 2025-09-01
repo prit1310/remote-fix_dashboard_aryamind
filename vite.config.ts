@@ -35,6 +35,11 @@ export default defineConfig(({ mode }) => ({
             changeOrigin: true,
             secure: false,
           },
+          "/order-inprogress": {
+            target: "http://localhost:4000",
+            changeOrigin: true,
+            secure: false,
+          },
         }
         : undefined,
   },
