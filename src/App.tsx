@@ -148,7 +148,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppRoutes />
+        <div className="min-h-screen flex flex-col">
+          <AppRoutes />
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <footer className="bg-tech-dark text-tech-light">
+    <footer className="bg-tech-dark text-tech-light mt-auto">
       <div className="container max-w-screen-2xl px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Left: Company Info */}
@@ -21,7 +21,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
                 <Phone className="h-4 w-4 text-accent" />
-                <span>+91 6356137551</span>
+                <span>+91 63561 37551</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="h-4 w-4 text-accent" />

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Ticket, Plus, Clock, CheckCircle, AlertCircle, User } from "lucide-react";
+import { Ticket, Plus, Clock, CheckCircle, AlertCircle } from "lucide-react";
 
 declare global {
     interface Window {
@@ -13,7 +13,7 @@ declare global {
 }
 
 interface UserDashboardProps {
-    user: { id: string; name: string; email: string; phone?: string }
+    user: { id: string; name: string; email: string; phone?: string; role: string }
 }
 
 interface TicketData {
@@ -23,10 +23,10 @@ interface TicketData {
     createdAt: string;
     service: string;
     engineer?: { id: string; name: string; email: string; phone: string } | null;
+    user?: { id: string; name: string; email: string; phone?: string } | null;
 }
 
 const UserDashboard = ({ user }: UserDashboardProps) => {
-
     const [tickets, setTickets] = useState<TicketData[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -40,12 +40,13 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         phone: user.phone || "",
     });
     const [saving, setSaving] = useState(false);
-
     const [inProgressPayments, setInProgressPayments] = useState<{ [ticketId: string]: any }>({});
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        fetch("/api/tickets", {
+        // For engineer, fetch assigned tickets; for user, fetch own tickets
+        const url = user.role === "engineer" ? "/api/engineer/assigned-tickets" : "/api/tickets";
+        fetch(url, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -53,20 +54,21 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 setTickets(data.tickets || []);
                 setLoading(false);
             });
-        fetch("/api/admin/services")
-            .then(res => res.json())
-            .then(data => setServices(data.services || []));
-        fetch("/api/user/inprogress-payments", {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(res => res.json())
-            .then(data => {
-                // Map by ticketId for easy lookup
-                const map = {};
-                (data.payments || []).forEach(p => { map[p.ticketId] = p; });
-                setInProgressPayments(map);
-            });
-    }, []);
+        if (user.role !== "engineer") {
+            fetch("/api/admin/services")
+                .then(res => res.json())
+                .then(data => setServices(data.services || []));
+            fetch("/api/user/inprogress-payments", {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const map = {};
+                    (data.payments || []).forEach(p => { map[p.ticketId] = p; });
+                    setInProgressPayments(map);
+                });
+        }
+    }, [user.role]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -86,21 +88,16 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         }
     };
 
-    const handleCreateTicket = async () => {
-        setShowForm(true);
-    };
+    // --- User (not engineer) only functions ---
+    const handleCreateTicket = async () => setShowForm(true);
 
     const handleFormChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-    ) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+    ) => setForm({ ...form, [e.target.name]: e.target.value });
 
     const handleProfileChange = (
         e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
-    };
+    ) => setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -110,12 +107,11 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         let rzp: any = null;
 
         const token = localStorage.getItem("token");
-        // 1. Create Razorpay order (pass userId or email in notes for backend)
         const orderRes = await fetch("/order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                amount: 99, // or your dynamic amount
+                amount: 99,
                 currency: "INR",
                 receipt: `ticket_${Date.now()}`,
                 notes: { userId: user.id, userEmail: user.email },
@@ -128,7 +124,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             return;
         }
 
-        // Only create ticket once
         const createTicket = async () => {
             if (ticketCreated) return;
             ticketCreated = true;
@@ -152,14 +147,12 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             setCreating(false);
         };
 
-        // 2. Open Razorpay checkout
         const options = {
             key: "rzp_test_RB4YBY1PoFLtEK",
             order_id: order.id,
             name: "RemoteFix Pro",
             description: "Ticket Booking",
             handler: async function (response: any) {
-                // 3. Verify payment signature (for instant methods)
                 const verifyRes = await fetch("/verify", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -190,7 +183,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         rzp = new (window as any).Razorpay(options);
         rzp.open();
 
-        // 4. Poll payment status for Pay Later/UPI/EMI
         const pollStatus = (orderId: string) => {
             const start = Date.now();
             const interval = setInterval(async () => {
@@ -224,8 +216,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
 
     const handleInProgressPayment = async (ticket: TicketData) => {
         let rzp: any = null;
-
-        // 1. Create Razorpay order for in-progress payment
         const orderRes = await fetch("/order-inprogress", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -244,14 +234,12 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             return;
         }
 
-        // 2. Razorpay checkout options
         const options = {
-            key: "rzp_test_RB4YBY1PoFLtEK", // Use your live key in production!
+            key: "rzp_test_RB4YBY1PoFLtEK",
             order_id: order.id,
             name: "RemoteFix Pro",
             description: "In-Progress Payment",
             handler: async function (response: any) {
-                // 3. Verify payment signature (for instant methods)
                 const verifyRes = await fetch("/verify", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -260,7 +248,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                 const verifyData = await verifyRes.json();
                 if (verifyData.status === "success") {
                     alert("Payment successful!");
-                    // Refetch in-progress payments
                     const token = localStorage.getItem("token");
                     fetch("/api/user/inprogress-payments", {
                         headers: { Authorization: `Bearer ${token}` }
@@ -288,11 +275,9 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
             },
         };
 
-        // 4. Open Razorpay checkout
         rzp = new window.Razorpay(options);
         rzp.open();
 
-        // 5. Poll payment status for UPI/PayLater/EMI
         const pollStatus = (orderId: string) => {
             const start = Date.now();
             const interval = setInterval(async () => {
@@ -302,7 +287,6 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
                         const data = await r.json();
                         if (data.status === "captured") {
                             clearInterval(interval);
-                            // Refetch in-progress payments
                             const token = localStorage.getItem("token");
                             fetch("/api/user/inprogress-payments", {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -354,6 +338,70 @@ const UserDashboard = ({ user }: UserDashboardProps) => {
         setSaving(false);
     };
 
+    // --- RENDER ---
+
+    // Engineer Dashboard
+    if (user.role === "engineer") {
+        return (
+            <div className="container mx-auto px-4 py-8 max-w-6xl">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold">Welcome, {user.name} (Engineer)</h1>
+                    <p className="text-muted-foreground">Your assigned tickets</p>
+                </div>
+                {loading ? (
+                    <p>Loading assigned tickets...</p>
+                ) : (
+                    <div className="grid gap-4">
+                        {tickets.length === 0 && (
+                            <div className="text-center text-muted-foreground">No assigned tickets.</div>
+                        )}
+                        {tickets.map((ticket) => (
+                            <Card key={ticket.id}>
+                                <CardHeader className="pb-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle className="text-lg">{ticket.service}</CardTitle>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                {ticket.service} • Created {ticket.createdAt}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {getStatusIcon(ticket.status)}
+                                            <Badge variant={getStatusColor(ticket.status)}>
+                                                {ticket.status.replace('-', ' ')}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-foreground/80">{ticket.description}</p>
+                                    {ticket.user && (
+                                        <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
+                                            <div>
+                                                <span className="font-medium">User:</span> {ticket.user.name}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Email:</span>{" "}
+                                                <a href={`mailto:${ticket.user.email}`} className="underline">{ticket.user.email}</a>
+                                            </div>
+                                            {ticket.user.phone && (
+                                                <div>
+                                                    <span className="font-medium">Phone:</span>{" "}
+                                                    <a href={`tel:${ticket.user.phone}`} className="underline">{ticket.user.phone}</a>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // User Dashboard (default)
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
             <div className="flex justify-between items-center mb-8">

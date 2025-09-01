@@ -76,7 +76,7 @@ const ContactSection = () => {
                   <p className="text-muted-foreground mb-3">
                     Speak directly with a technician
                   </p>
-                  <p className="text-lg font-bold text-primary">(555) 123-4567</p>
+                  <p className="text-lg font-bold text-primary">+91 63561 37551</p>
                 </div>
               </div>
             </Card>
@@ -91,7 +91,7 @@ const ContactSection = () => {
                   <p className="text-muted-foreground mb-3">
                     Send us your computer details
                   </p>
-                  <p className="text-lg font-bold text-primary">help@remotefixpro.com</p>
+                  <p className="text-lg font-bold text-primary">contact@shwetatech.com</p>
                 </div>
               </div>
             </Card>

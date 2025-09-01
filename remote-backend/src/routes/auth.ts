@@ -6,7 +6,7 @@ const prisma = require("../prisma");
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "";
 
-function requireAuth(req:any, res:any, next:any) {
+function requireAuth(req: any, res: any, next: any) {
     const auth = req.headers.authorization;
     if (!auth) return res.status(401).json({ error: "No token." });
 
@@ -36,7 +36,7 @@ router.post("/signup", async (req: any, res: any) => {
         });
 
         const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone|| "", role: user.role } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone || "", role: user.role } });
     } catch (err) {
         res.status(500).json({ error: "Server error." });
     }
@@ -56,7 +56,7 @@ router.post("/login", async (req: any, res: any) => {
         if (!valid) return res.status(401).json({ error: "Invalid credentials." });
 
         const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone|| "", role: user.role } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone || "", role: user.role } });
     } catch (err) {
         res.status(500).json({ error: "Server error." });
     }
@@ -101,18 +101,30 @@ router.patch("/profile", async (req: any, res: any) => {
             data: { name, email, phone },
         });
 
-        res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone|| "", role: user.role } });
+        res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone || "", role: user.role } });
     } catch (err) {
         res.status(401).json({ error: "Invalid token or update failed." });
     }
 });
 
-router.get("/user/inprogress-payments", requireAuth, async (req: any, res: any) => {
+router.get("/user/inprogress-payments", requireAuth, async (req:any, res:any) => {
     const userId = req.user.id;
     const payments = await prisma.inProgressPayment.findMany({
         where: { userId },
     });
     res.json({ payments });
+});
+
+router.get("/engineer/assigned-tickets", requireAuth, async (req:any, res:any) => {
+    const engineerId = req.user.id;
+    const tickets = await prisma.ticket.findMany({
+        where: { engineerId },
+        include: {
+            user: { select: { id: true, name: true, email: true, phone: true } }
+        },
+        orderBy: { createdAt: "desc" }
+    });
+    res.json({ tickets });
 });
 
 module.exports = router;

@@ -146,7 +146,7 @@ const HowItWorksSection = ({ user, onLoginClick }: HowitsworkProps) => {
                 Start Remote Session
               </Button>
               <Button variant="ghost" size="lg">
-                Call: (555) 123-4567
+                Call: +91 63561 37551 
               </Button>
             </div>
           </div>
