@@ -15,17 +15,25 @@ const Footer = () => {
               </span>
             </Link>
             <p className="text-tech-light/80 mb-6">
-              Professional remote computer repair services.<br/> Fast, secure, and reliable
-              solutions for <br/> all your technical problems.
+              Professional remote computer repair services.<br /> Fast, secure, and reliable
+              solutions for <br /> all your technical problems.
             </p>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
+              <a
+                href="tel:+916356137551"
+                className="flex items-center gap-3 text-sm"
+              >
                 <Phone className="h-4 w-4 text-accent" />
                 <span>+91 63561 37551</span>
-              </div>
+              </a>
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="h-4 w-4 text-accent" />
-                <span>contact@shwetatech.com</span>
+                <a
+                  href="mailto:contact@shwetatech.com"
+                  className="hover:underline text-sm"
+                >
+                  contact@shwetatech.com
+                </a>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <MapPin className="h-4 w-4 text-accent" />

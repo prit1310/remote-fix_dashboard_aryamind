@@ -10,12 +10,12 @@ import UserDashboard from "@/components/UserDashboard";
 import AuthModal from "@/components/AuthModal";
 import Header from "@/components/Header";
 import AdminDashboard from "@/components/AdminDashboard";
-import ServicesSection from "@/components/ServicesSection";
-import HowItWorksSection from "@/components/HowItWorksSection";
-import ContactSection from "@/components/ContactSection";
 import AboutSection from "@/components/AboutSection";
 import Footer from "@/components/Footer";
 import AdminHeader from "@/components/AdminHeader";
+import ContactPage from "@/components/ContactPage";
+import HowItWorksPage from "@/components/HowItWorksPage";
+import ServiceSectionPage from "@/components/ServicesSectionPage";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +98,7 @@ const AppRoutes = () => {
       />
 
       <Routes>
+        <Route path="*" element={<NotFound />} />
         <Route
           path="/"
           element={
@@ -107,12 +108,12 @@ const AppRoutes = () => {
             />
           }
         />
-        <Route path="/service" element={<ServicesSection />} />
-        <Route path="/how-it-works" element={<HowItWorksSection
+        <Route path="/service" element={<ServiceSectionPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage
           user={user}
           onLoginClick={() => setShowAuthModal(true)} />} />
         <Route path="/about" element={<AboutSection />} />
-        <Route path="/contact" element={<ContactSection />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route
           path="/admin"
           element={

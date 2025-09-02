@@ -32,7 +32,7 @@ const Header = ({ user, onLoginClick, onLogout }: HeaderProps) => {
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition">
           <Monitor className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            RemoteFix
+            RemoteFix Pro
           </span>
         </Link>
 
@@ -63,9 +63,11 @@ const Header = ({ user, onLoginClick, onLogout }: HeaderProps) => {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="hidden sm:flex">
-            <Phone className="h-4 w-4 mr-2" />
-            Call Now
+          <Button variant="ghost" size="sm" className="hidden sm:flex" asChild>
+            <a href="tel:+916356137551">
+              <Phone className="h-4 w-4 mr-2" />
+              Call Now
+            </a>
           </Button>
           {user ? (
             <div className="flex items-center gap-3">
