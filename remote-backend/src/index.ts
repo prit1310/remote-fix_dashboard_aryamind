@@ -26,7 +26,7 @@ const paymentStore = new Map();
 app.post(
     "/razorpay-webhook",
     express.raw({ type: "application/json" }),
-    async (req: any, res: any) => {
+    async (req:any, res:any) => {
         try {
             const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
             const signature = req.headers["x-razorpay-signature"];
@@ -52,12 +52,25 @@ app.post(
                     amount: payment.amount,
                 });
 
-                // Always update, never create (created on /order)
-                const userId = payment.notes?.userId;
+                // Try to get userId from notes or fetch order from Razorpay if missing
+                let userId = payment.notes?.userId;
                 if (!userId) {
-                    console.error("Webhook: userId missing in payment notes for order", orderId);
-                    return res.status(400).send("userId missing in payment notes");
+                    try {
+                        const order = await razorpay.orders.fetch(orderId);
+                        if (order.notes && order.notes.userId) {
+                            userId = order.notes.userId;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
                 }
+
+                if (!userId) {
+                    // Just log and skip, do not return error
+                    console.warn("Webhook: userId missing in payment notes for order", orderId, payment.notes);
+                    return res.json({ status: "ignored", reason: "userId missing" });
+                }
+
                 await prisma.payment.upsert({
                     where: { orderId },
                     update: {
@@ -99,7 +112,8 @@ app.post(
             }
 
             res.json({ status: "ok" });
-        } catch (err: any) {
+        } catch (err) {
+            console.error("Webhook error:", err);
             res.status(500).send("Server error");
         }
     }
