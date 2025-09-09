@@ -11,8 +11,8 @@ model User {
   id              String           @id @default(uuid())
   name            String
   email           String           @unique
-  phone           String
-  password        String
+  phone           String?
+  password        String?
   role            String           @default("user")
   tickets         Ticket[]         @relation("UserTickets")
   assignedTickets Ticket[]         @relation("EngineerTickets")

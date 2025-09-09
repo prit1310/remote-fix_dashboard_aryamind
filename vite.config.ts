@@ -7,6 +7,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [
+      "9ec64fd2583c.ngrok-free.app",
+      "remotefix.shwetatech.com",
+      "localhost",
+      "127.0.0.1",
+    ],
     proxy:
       mode === "development"
         ? {
@@ -46,7 +52,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     host: "0.0.0.0",
     port: 8081,
-    allowedHosts: ["remotefix.shwetatech.com"],
+    allowedHosts: ["remotefix.shwetatech.com", "147004f64371.ngrok-free.app"],
   },
   plugins: [
     react(),

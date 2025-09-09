@@ -16,6 +16,7 @@ import AdminHeader from "@/components/AdminHeader";
 import ContactPage from "@/components/ContactPage";
 import HowItWorksPage from "@/components/HowItWorksPage";
 import ServiceSectionPage from "@/components/ServicesSectionPage";
+import AuthSuccess from "@/components/AuthSuccess";
 
 const queryClient = new QueryClient();
 
@@ -133,6 +134,10 @@ const AppRoutes = () => {
               <UserDashboard user={user} />
             )
           }
+        />
+        <Route
+          path="/auth/success"
+          element={<AuthSuccess onAuthSuccess={handleAuthSuccess} />}
         />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Phone } from "lucide-react";
+import google from "../assets/google.svg"
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -151,6 +152,20 @@ const AuthModal = ({ isOpen, onAuthSuccess, onClose, initialMode = 'login' }: Au
                             ? "Don't have an account? Sign up"
                             : "Already have an account? Sign in"
                         }
+                    </Button>
+                    <Button
+                        variant="outlineNoHover"
+                        className="w-full flex items-center justify-center space-x-2 mt-4"
+                        onClick={() => {
+                            window.location.href = "/api/google/login";
+                        }}
+                    >
+                        <img
+                            src={google}
+                            alt="Google"
+                            className="h-5 w-5"
+                        />
+                        <span>Sign in with Google</span>
                     </Button>
                 </div>
             </DialogContent>
