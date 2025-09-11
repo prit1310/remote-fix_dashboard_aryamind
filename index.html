@@ -1,19 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RemoteFix</title>
-    <link rel="icon" type="image/gif" href="/icon.gif" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="author" content="RemoteFix Pro" />
-    <meta name="twitter:card" content="summary_large_image" />
-  </head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RemoteFix</title>
+  <link rel="icon" type="image/gif" href="/icon.gif" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="author" content="RemoteFix Pro" />
+  <meta name="twitter:card" content="summary_large_image" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MBRP83EN6F"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-MBRP83EN6F');
+  </script>
+  <script type='application/ld+json'>
+    {
+    "@context": "http://www.schema.org",
+    "@type": "WebSite",
+    "name": "RemoteFix Pro",
+    "alternateName": "Remote PC and Laptop Repair Services Near You",
+    "url": "https://remotefix.shwetatech.com/"
+    }
+  </script>
+</body>
+
 </html>
